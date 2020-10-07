@@ -236,4 +236,16 @@ class RichPathDrawable extends Drawable {
         return PixelFormat.TRANSLUCENT;
     }
 
+    public void addTags(String[] pathnames, String[] tagTexts) {
+        if (vector == null || vector.paths.size() < 0) return;
+        for (RichPath path : vector.paths) {
+            for (int i=0; i<pathnames.length;i++ ){
+                String name=pathnames[i];
+                if (name.equals(path.getName())) {
+                    path.addTag(tagTexts[i]);
+                }
+            }
+        }
+        invalidateSelf();
+    }
 }

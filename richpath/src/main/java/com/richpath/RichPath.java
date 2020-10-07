@@ -8,6 +8,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
+import android.graphics.RectF;
 
 import com.richpath.listener.OnRichPathUpdatedListener;
 import com.richpath.model.Group;
@@ -28,6 +29,7 @@ public class RichPath extends Path {
 
     public final static String TAG_NAME = "path";
 
+    private String Tag=null;
     private int fillColor = Color.TRANSPARENT;
     private int strokeColor = Color.TRANSPARENT;
     private float fillAlpha = 1.0f;
@@ -354,8 +356,19 @@ public class RichPath extends Path {
         paint.setStyle(Paint.Style.STROKE);
         canvas.drawPath(this, paint);
 
+        if (Tag !=null){
+            int backgroundColor=applyAlpha(fillColor, fillAlpha);
+            paint.setColor(invertColor(backgroundColor));
+            RectF rectF = new RectF();
+            this.computeBounds(rectF,true);
+            canvas.drawText(Tag, rectF.centerX(), rectF.centerY(), paint);
+        }
+
     }
 
+    private int invertColor(int color) {
+        return  color^0x00FFFFFF;
+    }
     public void applyGroup(Group group) {
         mapToMatrix(group.matrix());
         pivotX = group.getPivotX();
@@ -500,6 +513,11 @@ public class RichPath extends Path {
 
     OnPathClickListener getOnPathClickListener() {
         return onPathClickListener;
+    }
+
+    public void addTag(String tagText) {
+        Tag=tagText;
+        onPathUpdated();
     }
 
     public interface OnPathClickListener {

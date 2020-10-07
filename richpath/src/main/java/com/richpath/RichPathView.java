@@ -82,7 +82,6 @@ public class RichPathView extends ImageView {
 
         try {
             XmlParser.parseVector(vector, xpp, getContext());
-
             richPathDrawable = new RichPathDrawable(vector, getScaleType());
             setImageDrawable(richPathDrawable);
 
@@ -197,6 +196,11 @@ public class RichPathView extends ImageView {
     public void addPath(Path path) {
         if (richPathDrawable != null) {
             richPathDrawable.addPath(path);
+        }
+    }
+    public void addTags(String []Pathnames, String []TagTexts) {
+        if (richPathDrawable != null) {
+            richPathDrawable.addTags(Pathnames,TagTexts);
         }
     }
 
