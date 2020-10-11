@@ -30,6 +30,9 @@ public class RichPath extends Path {
     public final static String TAG_NAME = "path";
 
     private String Tag=null;
+    private float Xhint= (float) -10000.;
+    private float Yhint= (float) -10000.;
+
     private int fillColor = Color.TRANSPARENT;
     private int strokeColor = Color.TRANSPARENT;
     private float fillAlpha = 1.0f;
@@ -361,7 +364,12 @@ public class RichPath extends Path {
             paint.setColor(invertColor(backgroundColor));
             RectF rectF = new RectF();
             this.computeBounds(rectF,true);
-            canvas.drawText(Tag, rectF.centerX(), rectF.centerY(), paint);
+            if (Xhint>-10000 || Yhint >-10000){
+                canvas.drawText(Tag, rectF.centerX()+Xhint, rectF.centerY()+Yhint, paint);
+            }
+            else {
+                canvas.drawText(Tag, rectF.centerX(), rectF.centerY(), paint);
+            }
         }
 
     }
@@ -517,6 +525,13 @@ public class RichPath extends Path {
 
     public void addTag(String tagText) {
         Tag=tagText;
+        onPathUpdated();
+    }
+
+    public void addTag(String tagText, float xhint, float yhint) {
+        Tag=tagText;
+        Xhint=xhint;
+        Yhint=yhint;
         onPathUpdated();
     }
 

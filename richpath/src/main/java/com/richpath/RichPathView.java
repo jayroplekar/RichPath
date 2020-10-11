@@ -9,7 +9,14 @@ import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
+import android.graphics.Matrix;
+import android.graphics.PointF;
+import android.os.Bundle;
+import android.util.FloatMath;
+
 import android.view.View;
 import android.widget.ImageView;
 
@@ -21,15 +28,37 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 
+import static java.lang.Math.sqrt;
+
 /**
  * Created by tarek on 6/29/17.
  */
 
-public class RichPathView extends ImageView {
+public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
 
     private Vector vector;
     private RichPathDrawable richPathDrawable;
     private RichPath.OnPathClickListener onPathClickListener;
+
+
+    private ScaleGestureDetector mScaleGestureDetector;private float mScaleFactor = 1.0f;
+
+    static final String TAG="RichPathView  zoom+pan";
+
+    // These matrices will be used to move and zoom image
+    Matrix matrix = new Matrix();
+    Matrix savedMatrix = new Matrix();
+
+    // We can be in one of these 3 states
+    static final int NONE = 0;
+    static final int DRAG = 1;
+    static final int ZOOM = 2;
+    int mode = NONE;
+
+    // Remember some things for zooming
+    PointF start = new PointF();
+    PointF mid = new PointF();
+    float oldDist = 1f;
 
     public RichPathView(Context context) {
         this(context, null);
@@ -159,29 +188,6 @@ public class RichPathView extends ImageView {
         return richPathDrawable == null ? null : richPathDrawable.findFirstRichPath();
     }
 
-    /**
-     * find {@link RichPath} by its index or null if not found
-     * <p>
-     * Note that the provided index must be the flattened index of the path
-     * <p>
-     * example:
-     * <pre>
-     * {@code <vector>
-     *     <path> // index = 0
-     *     <path> // index = 1
-     *     <group>
-     *          <path> // index = 2
-     *          <group>
-     *              <path> // index = 3
-     *          </group>
-     *      </group>
-     *      <path> // index = 4
-     *   </vector>}
-     * </pre>
-     *
-     * @param index the flattened index of the path
-     * @return the {@link RichPath} object found or null
-     */
     @Nullable
     public RichPath findRichPathByIndex(@IntRange(from = 0) int index) {
         return richPathDrawable == null ? null : richPathDrawable.findRichPathByIndex(index);
@@ -203,16 +209,75 @@ public class RichPathView extends ImageView {
             richPathDrawable.addTags(Pathnames,TagTexts);
         }
     }
-
+    public void addTags(String []Pathnames, String []TagTexts, float Xhints[], float Yhints[]) {
+        if (richPathDrawable != null) {
+            richPathDrawable.addTags(Pathnames,TagTexts,Xhints,Yhints);
+        }
+    }
+//
+//    private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {@Override
+//    public boolean onScale(ScaleGestureDetector scaleGestureDetector){
+//        mScaleFactor *= scaleGestureDetector.getScaleFactor();
+//        mScaleFactor = Math.max(0.1f,Math.min(mScaleFactor, 10.0f));
+//        mImageView.setScaleX(mScaleFactor);
+//        mImageView.setScaleY(mScaleFactor);
+//        return true;    }
+//    }
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        float scale;
         int action = event.getAction();
         switch (action) {
-            case MotionEvent.ACTION_UP:
-                performClick();
+
+            case MotionEvent.ACTION_DOWN: //first finger down only
+                savedMatrix.set(matrix);
+                start.set(event.getX(), event.getY());
+                Log.d(TAG, "mode=DRAG");
+                mode = DRAG;
+                break;
+            case MotionEvent.ACTION_UP: //first finger lifted
+                if (mode == DRAG){
+                    performClick();
+                    break;
+                }
+
+            case MotionEvent.ACTION_POINTER_UP: //second finger lifted
+                mode = NONE;
+                Log.d(TAG, "mode=NONE" );
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN: //second finger down
+                oldDist = spacing(event); // calculates the distance between two points where user touched.
+                Log.d(TAG, "oldDist=" + oldDist);
+                // minimal distance between both the fingers
+                if (oldDist > 5f) {
+                    savedMatrix.set(matrix);
+                    midPoint(mid, event); // sets the mid-point of the straight line between two points where user touched.
+                    mode = ZOOM;
+                    Log.d(TAG, "mode=ZOOM" );
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (mode == DRAG)
+                { //movement of first finger
+                    matrix.set(savedMatrix);
+                    if (this.getLeft() >= -392)
+                    {
+                        matrix.postTranslate(event.getX() - start.x, event.getY() - start.y);
+                    }
+                }
+                else if (mode == ZOOM) { //pinch zooming
+                    float newDist = spacing(event);
+                    Log.d(TAG, "newDist=" + newDist);
+                    if (newDist > 5f) {
+                        matrix.set(savedMatrix);
+                        scale = newDist/oldDist; //thinking I need to play around with this value to limit it**
+                        matrix.postScale(scale, scale, mid.x, mid.y);
+                    }
+                }
                 break;
         }
 
+        this.setImageMatrix(matrix);
         RichPath richPath = richPathDrawable.getTouchedPath(event);
 
         if (richPath != null) {
@@ -224,11 +289,22 @@ public class RichPathView extends ImageView {
                 this.onPathClickListener.onClick(richPath);
             }
         }
-
         return true;
     }
 
     public void setOnPathClickListener(RichPath.OnPathClickListener onPathClickListener) {
         this.onPathClickListener = onPathClickListener;
+    }
+
+    private float spacing(MotionEvent event) {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) sqrt(x * x + y * y);
+    }
+
+    private void midPoint(PointF point, MotionEvent event) {
+        float x = event.getX(0) + event.getX(1);
+        float y = event.getY(0) + event.getY(1);
+        point.set(x / 2, y / 2);
     }
 }
