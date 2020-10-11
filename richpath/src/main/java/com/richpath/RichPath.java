@@ -60,6 +60,7 @@ public class RichPath extends Path {
     private float pivotX = 0;
     private float pivotY = 0;
     private boolean pivotToCenter = false;
+    RectF PathBounds = new RectF();
 
     private OnRichPathUpdatedListener onRichPathUpdatedListener;
 
@@ -362,13 +363,12 @@ public class RichPath extends Path {
         if (Tag !=null){
             int backgroundColor=applyAlpha(fillColor, fillAlpha);
             paint.setColor(invertColor(backgroundColor));
-            RectF rectF = new RectF();
-            this.computeBounds(rectF,true);
+            this.computeBounds(PathBounds,true);
             if (Xhint>-10000 || Yhint >-10000){
-                canvas.drawText(Tag, rectF.centerX()+Xhint, rectF.centerY()+Yhint, paint);
+                canvas.drawText(Tag, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint, paint);
             }
             else {
-                canvas.drawText(Tag, rectF.centerX(), rectF.centerY(), paint);
+                canvas.drawText(Tag, PathBounds.centerX(), PathBounds.centerY(), paint);
             }
         }
 
