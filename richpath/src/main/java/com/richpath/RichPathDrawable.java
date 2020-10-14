@@ -43,7 +43,6 @@ class RichPathDrawable extends Drawable {
             width = bounds.width();
             height = bounds.height();
             mapPaths();
-
         }
     }
 
@@ -88,6 +87,11 @@ class RichPathDrawable extends Drawable {
 
     }
 
+    void applyZoomPan(Matrix inmatrix){
+        for (RichPath path : vector.paths) {
+            path.mapToMatrix(inmatrix);
+        }
+    }
     @NonNull
     public RichPath[] findAllRichPaths() {
         if (vector == null) {
