@@ -3,22 +3,23 @@ package com.richpath;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.content.res.XmlResourceParser;
+import android.graphics.Canvas;
 import android.graphics.Path;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.GestureDetectorCompat;
+
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.graphics.Matrix;
 import android.graphics.PointF;
-import android.os.Bundle;
-import android.util.FloatMath;
 
 import android.view.View;
-import android.widget.ImageView;
 
 import com.richpath.model.Vector;
 import com.richpath.pathparser.PathParser;
@@ -28,6 +29,7 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.IOException;
 
+import static java.lang.Math.abs;
 import static java.lang.Math.sqrt;
 
 /**
@@ -36,12 +38,13 @@ import static java.lang.Math.sqrt;
 
 public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
 
+
     private Vector vector;
     private RichPathDrawable richPathDrawable;
     private RichPath.OnPathClickListener onPathClickListener;
 
 
-    private ScaleGestureDetector mScaleGestureDetector;private float mScaleFactor = 1.0f;
+
 
     static final String TAG="RichPathView  zoom+pan";
 
@@ -53,6 +56,7 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
     static final int NONE = 0;
     static final int DRAG = 1;
     static final int ZOOM = 2;
+    static final int TOUCH = 3;
     int mode = NONE;
 
     // Remember some things for zooming
@@ -60,7 +64,106 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
     PointF mid = new PointF();
     float oldDist = 1f;
 
-    public RichPathView(Context context) {
+    // Let's cluster android sample into this
+    private static final String DEBUG_TAG = "Gestures";
+    private ScaleGestureDetector mScaleDetector;
+    private final GestureDetectorCompat mScrollDetector;
+    private float mScaleFactor = 1.0f;
+    private float mPosX, mPosY,zoomFocusX, zoomFocusY;
+    private float PhysicsFactor=0.01F;
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
+    private class ScaleListener
+            extends ScaleGestureDetector.SimpleOnScaleGestureListener {
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            mScaleFactor = detector.getScaleFactor();
+            // Don't let the object get too small or too large.
+            mScaleFactor = Math.max(0.1f, Math.min(mScaleFactor, 5.0f));
+            invalidate();
+            Log.d(DEBUG_TAG,"onScale: " + mScaleFactor +" FocusX: "+detector.getFocusX()+" FocusY: "+detector.getFocusY());
+            return true;
+        }
+    }
+    class MyScrollListener extends GestureDetector.SimpleOnGestureListener {
+//        @Override
+//        public boolean onDown(MotionEvent event) {
+//            Log.d(DEBUG_TAG,"onDown: " + event.toString());
+//            return true;
+//        }
+        @Override
+        public boolean onFling(MotionEvent event1, MotionEvent event2,
+                               float velocityX, float velocityY) {
+            Log.d(DEBUG_TAG, "onFling: Vx:  " + velocityX + " Vy: "+velocityY);
+            mPosX= (float) 0.0;
+            mPosY= (float) 0.0;
+            if( abs(velocityX) >= SWIPE_VELOCITY_THRESHOLD) {
+                mPosX = velocityX * PhysicsFactor;
+            }
+            if( abs(velocityY) >= SWIPE_VELOCITY_THRESHOLD) {
+                mPosY = velocityY * PhysicsFactor;
+            }
+            if( abs(mPosX)> 5 || abs(mPosY) > 5)  invalidate();
+
+            return true;
+        }
+//        @Override
+//        public boolean onScroll(MotionEvent e1, MotionEvent e2,
+//                               float dX, float dY) {
+//            float diffY = e2.getY() - e1.getY();
+//            float diffX = e2.getX() - e1.getX();
+//            if (abs(diffX) >= SWIPE_THRESHOLD)
+//            {
+//                mPosX=diffX*PhysicsFactor;
+//            }
+//            else{
+//                mPosX= (float) 0.0;
+//            }
+//            if (abs(diffY) >= SWIPE_THRESHOLD)
+//            {
+//                mPosY=diffY*PhysicsFactor;
+//            }
+//            else{
+//                mPosY= (float) 0.0;
+//            }
+//            invalidate();
+//            Log.d(DEBUG_TAG, "onScroll:  dX, dY" + diffX +":  "+ diffY);
+//            return true;
+//        }
+    }
+
+    @Override
+    public void onDraw(Canvas canvas) {
+
+//        canvas.save();
+//        canvas.translate(mPosX, mPosY);
+//
+//        if (mScaleDetector.isInProgress()) {
+//            canvas.scale(mScaleFactor, mScaleFactor, zoomFocusX, zoomFocusY);
+//        }
+//        else{
+//            canvas.scale(mScaleFactor, mScaleFactor, zoomFocusX, zoomFocusY);
+//        }
+//        super.onDraw(canvas);
+//        canvas.restore();
+
+
+            //Let''s initialize to zero matrix
+            matrix=savedMatrix;
+            matrix.postTranslate(mPosX, mPosY);
+            matrix.postScale(mScaleFactor, mScaleFactor, zoomFocusX, zoomFocusY);
+            richPathDrawable.applyZoomPan(matrix);
+        // let's reset now that we have consumed this.
+            mPosX= (float) 0.0;
+            mPosY= (float) 0.0;
+            mScaleFactor= (float) 1.0;
+
+        super.onDraw(canvas);
+
+    }
+
+        public RichPathView(Context context) {
         this(context, null);
     }
 
@@ -72,6 +175,9 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
         super(context, attrs, defStyleAttr);
         init();
         setupAttributes(attrs);
+        mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
+        mScrollDetector = new GestureDetectorCompat(context, new MyScrollListener());
+
     }
 
     private void init() {
@@ -214,72 +320,20 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
             richPathDrawable.addTags(Pathnames,TagTexts,Xhints,Yhints);
         }
     }
-//
-//    private class ScaleListener extends ScaleGestureDetector.SimpleOnScaleGestureListener {@Override
-//    public boolean onScale(ScaleGestureDetector scaleGestureDetector){
-//        mScaleFactor *= scaleGestureDetector.getScaleFactor();
-//        mScaleFactor = Math.max(0.1f,Math.min(mScaleFactor, 10.0f));
-//        mImageView.setScaleX(mScaleFactor);
-//        mImageView.setScaleY(mScaleFactor);
-//        return true;    }
-//    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float scale;
-        int action = event.getAction();
+        int action = event.getActionMasked();
+        mScaleDetector.onTouchEvent(event);
+        mScrollDetector.onTouchEvent(event);
+        //Log.d(TAG, "event:"+event);
         switch (action) {
-
             case MotionEvent.ACTION_DOWN: //first finger down only
-                savedMatrix.set(matrix);
-                start.set(event.getX(), event.getY());
-                Log.d(TAG, "mode=DRAG");
-                mode = DRAG;
-                break;
-            case MotionEvent.ACTION_UP: //first finger lifted
-                if (mode == DRAG){
-                    performClick();
-                    break;
-                }
-
-            case MotionEvent.ACTION_POINTER_UP: //second finger lifted
-                mode = NONE;
-                Log.d(TAG, "mode=NONE" );
-                break;
-            case MotionEvent.ACTION_POINTER_DOWN: //second finger down
-                oldDist = spacing(event); // calculates the distance between two points where user touched.
-                Log.d(TAG, "oldDist=" + oldDist);
-                // minimal distance between both the fingers
-                if (oldDist > 5f) {
-                    savedMatrix.set(matrix);
-                    midPoint(mid, event); // sets the mid-point of the straight line between two points where user touched.
-                    mode = ZOOM;
-                    Log.d(TAG, "mode=ZOOM" );
-                }
-                break;
-            case MotionEvent.ACTION_MOVE:
-                if (mode == DRAG)
-                { //movement of first finger
-                    matrix.set(savedMatrix);
-                    if (this.getLeft() >= -392)
-                    {
-                        matrix.postTranslate(event.getX() - start.x, event.getY() - start.y);
-                    }
-                }
-                else if (mode == ZOOM) { //pinch zooming
-                    float newDist = spacing(event);
-                    Log.d(TAG, "newDist=" + newDist);
-                    if (newDist > 5f) {
-                        matrix.set(savedMatrix);
-                        scale = newDist/oldDist; //thinking I need to play around with this value to limit it**
-                        matrix.postScale(scale, scale, mid.x, mid.y);
-                    }
-                }
+                performClick();
                 break;
         }
-
-        this.setImageMatrix(matrix);
         RichPath richPath = richPathDrawable.getTouchedPath(event);
-
         if (richPath != null) {
             RichPath.OnPathClickListener onPathClickListener = richPath.getOnPathClickListener();
             if (onPathClickListener != null) {
@@ -296,15 +350,4 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
         this.onPathClickListener = onPathClickListener;
     }
 
-    private float spacing(MotionEvent event) {
-        float x = event.getX(0) - event.getX(1);
-        float y = event.getY(0) - event.getY(1);
-        return (float) sqrt(x * x + y * y);
-    }
-
-    private void midPoint(PointF point, MotionEvent event) {
-        float x = event.getX(0) + event.getX(1);
-        float y = event.getY(0) + event.getY(1);
-        point.set(x / 2, y / 2);
-    }
 }
