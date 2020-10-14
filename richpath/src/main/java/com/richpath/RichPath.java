@@ -537,5 +537,7 @@ public class RichPath extends Path {
 
     public interface OnPathClickListener {
         void onClick(RichPath richPath);
+
+        void onResume();
     }
 }

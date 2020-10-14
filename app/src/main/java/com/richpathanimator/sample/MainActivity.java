@@ -3,12 +3,14 @@ package com.richpathanimator.sample;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.richpath.RichPath;
+import com.richpath.RichPath.OnPathClickListener;
 import com.richpath.RichPathView;
 import com.richpathanimator.AnimationListener;
 import com.richpathanimator.RichPathAnimator;
@@ -19,13 +21,36 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        RichPathView richPathView = findViewById(R.id.ic_android);
+        richPathView.setOnPathClickListener(new OnPathClickListener() {
+            @Override
+            public void onClick(RichPath richPath) {
+                int color = richPath.getFillColor();
+                String mState = richPath.getName();
+                if (mState != null) {
+                    Log.d(getLocalClassName().toString(), "Name: " + mState + "Current Color: " + color);
+                    if (color == Color.RED) {
+                        richPath.setFillColor(Color.GRAY);
+                    } else if (color == Color.BLUE) {
+                        richPath.setFillColor(Color.RED);
+                    } else {
+                        richPath.setFillColor(Color.BLUE);
+                    }
+                }
+            }
+            @Override
+            public void onResume() {
+
+            }
+        });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        animateAndroid();
-    }
+            @Override
+            public void onResume() {
+                MainActivity.super.onResume();
+            }
+
+
 
     public void animateAndroid(View view) {
         animateAndroid();
@@ -74,11 +99,4 @@ public class MainActivity extends AppCompatActivity {
                 .start();
     }
 
-    public void openAnimationSamples(View view) {
-        startActivity(new Intent(this, AnimationSamplesActivity.class));
-    }
-
-    public void openCompoundViewSamples(View view) {
-        startActivity(new Intent(this, CompoundViewSamplesActivity.class));
-    }
 }
