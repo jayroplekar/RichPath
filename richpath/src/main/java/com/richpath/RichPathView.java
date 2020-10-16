@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.GestureDetectorCompat;
 
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -30,7 +31,6 @@ import org.xmlpull.v1.XmlPullParserException;
 import java.io.IOException;
 
 import static java.lang.Math.abs;
-import static java.lang.Math.sqrt;
 
 /**
  * Created by tarek on 6/29/17.
@@ -39,12 +39,10 @@ import static java.lang.Math.sqrt;
 public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
 
 
+
     private Vector vector;
     private RichPathDrawable richPathDrawable;
     private RichPath.OnPathClickListener onPathClickListener;
-
-
-
 
     static final String TAG="RichPathView  zoom+pan";
 
@@ -57,7 +55,14 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
     static final int DRAG = 1;
     static final int ZOOM = 2;
     static final int TOUCH = 3;
-    int mode = NONE;
+    static final int DOUBLETAP = 4;
+    int mode=NONE;
+    private MotionEvent SavedE1=null;
+
+    private static final int INVALID_POINTER_ID = -1;
+
+    // The ‘active pointer’ is the one currently moving our object.
+    private int mActivePointerId = INVALID_POINTER_ID;
 
     // Remember some things for zooming
     PointF start = new PointF();
@@ -70,100 +75,133 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
     private final GestureDetectorCompat mScrollDetector;
     private float mScaleFactor = 1.0f;
     private float mPosX, mPosY,zoomFocusX, zoomFocusY;
-    private float PhysicsFactor=0.01F;
-    private static final int SWIPE_THRESHOLD = 100;
-    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+    private float mLastTouchX;
+    private float mLastTouchY;
+
+    private float PhysicsFactor=0.001F;
+    private static final int SWIPE_THRESHOLD = 20;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 50;
 
     private class ScaleListener
             extends ScaleGestureDetector.SimpleOnScaleGestureListener {
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
-            mScaleFactor = detector.getScaleFactor();
+            mScaleFactor *= detector.getScaleFactor();
+            zoomFocusX=detector.getFocusX();
+            zoomFocusY=detector.getFocusY();
             // Don't let the object get too small or too large.
             mScaleFactor = Math.max(0.1f, Math.min(mScaleFactor, 5.0f));
-            invalidate();
             Log.d(DEBUG_TAG,"onScale: " + mScaleFactor +" FocusX: "+detector.getFocusX()+" FocusY: "+detector.getFocusY());
+            mode=ZOOM;
+            invalidate();
             return true;
         }
     }
     class MyScrollListener extends GestureDetector.SimpleOnGestureListener {
-//        @Override
-//        public boolean onDown(MotionEvent event) {
-//            Log.d(DEBUG_TAG,"onDown: " + event.toString());
-//            return true;
-//        }
         @Override
-        public boolean onFling(MotionEvent event1, MotionEvent event2,
-                               float velocityX, float velocityY) {
-            Log.d(DEBUG_TAG, "onFling: Vx:  " + velocityX + " Vy: "+velocityY);
-            mPosX= (float) 0.0;
-            mPosY= (float) 0.0;
-            if( abs(velocityX) >= SWIPE_VELOCITY_THRESHOLD) {
-                mPosX = velocityX * PhysicsFactor;
-            }
-            if( abs(velocityY) >= SWIPE_VELOCITY_THRESHOLD) {
-                mPosY = velocityY * PhysicsFactor;
-            }
-            if( abs(mPosX)> 5 || abs(mPosY) > 5)  invalidate();
-
+        public boolean onDoubleTapEvent(MotionEvent e) {
+            //Let's center the view reset.
+            mode=DOUBLETAP;
+            Log.d(DEBUG_TAG, "Received Double Tap Let's recenter");
+            mPosX= (float) (getWidth()/2.0); mPosY= (float) (getHeight()/2.0); mScaleFactor=1;
+            invalidate();
             return true;
         }
-//        @Override
-//        public boolean onScroll(MotionEvent e1, MotionEvent e2,
-//                               float dX, float dY) {
-//            float diffY = e2.getY() - e1.getY();
-//            float diffX = e2.getX() - e1.getX();
-//            if (abs(diffX) >= SWIPE_THRESHOLD)
-//            {
-//                mPosX=diffX*PhysicsFactor;
-//            }
-//            else{
-//                mPosX= (float) 0.0;
-//            }
-//            if (abs(diffY) >= SWIPE_THRESHOLD)
-//            {
-//                mPosY=diffY*PhysicsFactor;
-//            }
-//            else{
-//                mPosY= (float) 0.0;
-//            }
-//            invalidate();
-//            Log.d(DEBUG_TAG, "onScroll:  dX, dY" + diffX +":  "+ diffY);
-//            return true;
-//        }
     }
 
     @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        float scale;
+        int action = ev.getActionMasked();
+        //passing all touch event through scale detector
+        mScaleDetector.onTouchEvent(ev);
+
+        //use the Scroll detector to reset on double tap
+        mScrollDetector.onTouchEvent(ev);
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN: {
+                final float x = ev.getX();
+                final float y = ev.getY();
+                mLastTouchX = x;
+                mLastTouchY = y;
+                mActivePointerId = ev.getPointerId(0);
+                break;
+            }
+
+            case MotionEvent.ACTION_MOVE: {
+                final int pointerIndex = ev.findPointerIndex(mActivePointerId);
+                final float x = ev.getX(pointerIndex);
+                final float y = ev.getY(pointerIndex);
+
+                // Only move if the ScaleGestureDetector isn't processing a gesture.
+                if (!mScaleDetector.isInProgress()) {
+                    final float dx = x - mLastTouchX;
+                    final float dy = y - mLastTouchY;
+                    mPosX += dx;
+                    mPosY += dy;
+                    mode=DRAG;
+                    invalidate();
+                }
+
+                mLastTouchX = x;
+                mLastTouchY = y;
+
+                break;
+            }
+
+            case MotionEvent.ACTION_UP: {
+                mActivePointerId = INVALID_POINTER_ID;
+                //mPosX=0;mPosX=0;
+                break;
+            }
+
+            case MotionEvent.ACTION_CANCEL: {
+                mActivePointerId = INVALID_POINTER_ID;
+                break;
+            }
+
+            case MotionEvent.ACTION_POINTER_UP: {
+                final int pointerIndex = (ev.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK)
+                        >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+                final int pointerId = ev.getPointerId(pointerIndex);
+                if (pointerId == mActivePointerId) {
+                    // This was our active pointer going up. Choose a new
+                    // active pointer and adjust accordingly.
+                    final int newPointerIndex = pointerIndex == 0 ? 1 : 0;
+                    mLastTouchX = ev.getX(newPointerIndex);
+                    mLastTouchY = ev.getY(newPointerIndex);
+                    mActivePointerId = ev.getPointerId(newPointerIndex);
+                    //mPosX=0;mPosX=0;
+                }
+                break;
+            }
+        }
+
+        RichPath richPath = richPathDrawable.getTouchedPath(ev);
+        if (richPath != null) {
+            RichPath.OnPathClickListener onPathClickListener = richPath.getOnPathClickListener();
+            if (onPathClickListener != null) {
+                onPathClickListener.onClick(richPath);
+            }
+            if (this.onPathClickListener != null) {
+                this.onPathClickListener.onClick(richPath);
+            }
+        }
+        return true;
+    }
+    @Override
     public void onDraw(Canvas canvas) {
-
-//        canvas.save();
-//        canvas.translate(mPosX, mPosY);
-//
-//        if (mScaleDetector.isInProgress()) {
-//            canvas.scale(mScaleFactor, mScaleFactor, zoomFocusX, zoomFocusY);
-//        }
-//        else{
-//            canvas.scale(mScaleFactor, mScaleFactor, zoomFocusX, zoomFocusY);
-//        }
-//        super.onDraw(canvas);
-//        canvas.restore();
-
-
-            //Let''s initialize to zero matrix
-            matrix=savedMatrix;
-            matrix.postTranslate(mPosX, mPosY);
-            matrix.postScale(mScaleFactor, mScaleFactor, zoomFocusX, zoomFocusY);
-            richPathDrawable.applyZoomPan(matrix);
-        // let's reset now that we have consumed this.
-            mPosX= (float) 0.0;
-            mPosY= (float) 0.0;
-            mScaleFactor= (float) 1.0;
-
-        super.onDraw(canvas);
-
+         super.onDraw(canvas);
+         Log.d(TAG, "OnDraw Mode:"+ mode + " mPosX: " + mPosX+ " mPosY:" + mPosY);
+         Log.d(TAG, "Get Height Width:"+ getHeight()+ " "+getWidth());
+         matrix=savedMatrix;
+         matrix.postTranslate(mPosX, mPosY);
+         matrix.postScale(mScaleFactor, mScaleFactor, zoomFocusX, zoomFocusY);
+         richPathDrawable.applyZoomPan(matrix);
     }
 
-        public RichPathView(Context context) {
+    public RichPathView(Context context) {
         this(context, null);
     }
 
@@ -177,7 +215,6 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
         setupAttributes(attrs);
         mScaleDetector = new ScaleGestureDetector(context, new ScaleListener());
         mScrollDetector = new GestureDetectorCompat(context, new MyScrollListener());
-
     }
 
     private void init() {
@@ -315,35 +352,10 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
             richPathDrawable.addTags(Pathnames,TagTexts);
         }
     }
-    public void addTags(String []Pathnames, String []TagTexts, float Xhints[], float Yhints[]) {
+    public void adjustTags(String []Pathnames, String []TagTexts, float[] Xhints, float[] Yhints) {
         if (richPathDrawable != null) {
-            richPathDrawable.addTags(Pathnames,TagTexts,Xhints,Yhints);
+            richPathDrawable.adjustTags(Pathnames,TagTexts,Xhints,Yhints);
         }
-    }
-
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        float scale;
-        int action = event.getActionMasked();
-        mScaleDetector.onTouchEvent(event);
-        mScrollDetector.onTouchEvent(event);
-        //Log.d(TAG, "event:"+event);
-        switch (action) {
-            case MotionEvent.ACTION_DOWN: //first finger down only
-                performClick();
-                break;
-        }
-        RichPath richPath = richPathDrawable.getTouchedPath(event);
-        if (richPath != null) {
-            RichPath.OnPathClickListener onPathClickListener = richPath.getOnPathClickListener();
-            if (onPathClickListener != null) {
-                onPathClickListener.onClick(richPath);
-            }
-            if (this.onPathClickListener != null) {
-                this.onPathClickListener.onClick(richPath);
-            }
-        }
-        return true;
     }
 
     public void setOnPathClickListener(RichPath.OnPathClickListener onPathClickListener) {

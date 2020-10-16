@@ -4,7 +4,9 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -28,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
                 int color = richPath.getFillColor();
                 String mState = richPath.getName();
                 if (mState != null) {
-                    Log.d(getLocalClassName().toString(), "Name: " + mState + "Current Color: " + color);
+                    Log.d(getLocalClassName(), "Name: " + mState + "Current Color: " + color);
                     if (color == Color.RED) {
                         richPath.setFillColor(Color.GRAY);
                     } else if (color == Color.BLUE) {
@@ -49,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
             public void onResume() {
                 MainActivity.super.onResume();
             }
-
 
 
     public void animateAndroid(View view) {

@@ -364,7 +364,7 @@ public class RichPath extends Path {
             int backgroundColor=applyAlpha(fillColor, fillAlpha);
             paint.setColor(invertColor(backgroundColor));
             this.computeBounds(PathBounds,true);
-            if (Xhint>-10000 || Yhint >-10000){
+            if (Xhint>-9999 || Yhint >-9999){
                 canvas.drawText(Tag, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint, paint);
             }
             else {
@@ -528,7 +528,7 @@ public class RichPath extends Path {
         onPathUpdated();
     }
 
-    public void addTag(String tagText, float xhint, float yhint) {
+    public void adjustTag(String tagText, float xhint, float yhint) {
         Tag=tagText;
         Xhint=xhint;
         Yhint=yhint;
@@ -537,7 +537,6 @@ public class RichPath extends Path {
 
     public interface OnPathClickListener {
         void onClick(RichPath richPath);
-
         void onResume();
     }
 }

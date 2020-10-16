@@ -10,6 +10,8 @@ import android.graphics.drawable.Drawable;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import android.util.Log;
 import android.view.MotionEvent;
 import android.widget.ImageView.ScaleType;
 
@@ -87,11 +89,6 @@ class RichPathDrawable extends Drawable {
 
     }
 
-    void applyZoomPan(Matrix inmatrix){
-        for (RichPath path : vector.paths) {
-            path.mapToMatrix(inmatrix);
-        }
-    }
     @NonNull
     public RichPath[] findAllRichPaths() {
         if (vector == null) {
@@ -185,7 +182,6 @@ class RichPathDrawable extends Drawable {
     private void addPath(RichPath path) {
 
         if (vector == null) return;
-
         vector.paths.add(path);
         path.setOnRichPathUpdatedListener(new OnRichPathUpdatedListener() {
             @Override
@@ -254,17 +250,29 @@ class RichPathDrawable extends Drawable {
         invalidateSelf();
     }
 
-    public void addTags(String[] pathnames, String[] tagTexts, float[] xhints, float[] yhints) {
+    public void adjustTags(String[] pathnames, String[] tagTexts, float[] xhints, float[] yhints) {
         int numpaths=pathnames.length;
+        RichPath path;
         if (vector == null || vector.paths.size() < 0) return;
-        for (RichPath path : vector.paths) {
-            for (int i=0; i<numpaths;i++ ){
-                String name=pathnames[i];
-                if (name.equals(path.getName())) {
-                    path.addTag(tagTexts[i],xhints[i],yhints[i]);
-                }
-            }
+        for (int i=0; i<numpaths;i++ ){
+            String name=pathnames[i];
+            path=findRichPathByName(name);
+            if (path != null) path.adjustTag(tagTexts[i],xhints[i],yhints[i]);
         }
         invalidateSelf();
+    }
+
+    void applyZoomPan(Matrix inmatrix){
+        float[] f = new float[9];
+        inmatrix.getValues(f);
+        float TransX,TransY, mScale;
+        mScale=f[Matrix.MSCALE_X];
+        TransX=f[Matrix.MTRANS_X];
+        TransY=f[Matrix.MTRANS_Y];
+        for (RichPath path : vector.paths) {
+            path.setScaleX(mScale);path.setScaleY(mScale);
+            path.setTranslationX(TransX);path.setTranslationY(TransY);
+        }
+
     }
 }
