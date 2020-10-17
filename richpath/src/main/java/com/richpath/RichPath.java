@@ -9,6 +9,10 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PathMeasure;
 import android.graphics.RectF;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import android.util.Log;
 
 import com.richpath.listener.OnRichPathUpdatedListener;
 import com.richpath.model.Group;
@@ -21,6 +25,8 @@ import com.richpath.util.XmlParser;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Float.min;
+
 /**
  * Created by tarek on 6/29/17.
  */
@@ -32,6 +38,7 @@ public class RichPath extends Path {
     private String Tag=null;
     private float Xhint= (float) -10000.;
     private float Yhint= (float) -10000.;
+    private float TagFontsize=16;
 
     private int fillColor = Color.TRANSPARENT;
     private int strokeColor = Color.TRANSPARENT;
@@ -72,6 +79,9 @@ public class RichPath extends Path {
     private List<Matrix> matrices;
 
     private OnPathClickListener onPathClickListener;
+    private String Tag1;
+    private String Tag2;
+    private float yshift;
 
     public RichPath(String pathData) {
         this(PathParser.createPathFromPathData(pathData));
@@ -88,8 +98,25 @@ public class RichPath extends Path {
         paint.setStyle(Paint.Style.STROKE);
         matrices = new ArrayList<>();
         updateOriginalDimens();
+
+        paint.setTextSize(24);
+        //calibrateTextSize(paint,"TX",12,30,Math.min(originalWidth/3,originalHeight/3));
+
+
     }
 
+    /**
+     * Calibrates this paint's text-size to fit the specified text within the specified width.
+     * @param paint     The paint to calibrate.
+     * @param text      The text to calibrate for.
+     * @param min       The minimum text size to use.
+     * @param max       The maximum text size to use.
+     * @param boxWidth  The width of the space in which the text has to fit.
+     */
+    public static void calibrateTextSize(Paint paint, String text, float min, float max, float boxWidth) {
+        paint.setTextSize(10);
+        paint.setTextSize(Math.max(Math.min((boxWidth/paint.measureText(text))*10, max), min));
+    }
     public String getName() {
         return name;
     }
@@ -364,11 +391,17 @@ public class RichPath extends Path {
             int backgroundColor=applyAlpha(fillColor, fillAlpha);
             paint.setColor(invertColor(backgroundColor));
             this.computeBounds(PathBounds,true);
+
             if (Xhint>-9999 || Yhint >-9999){
-                canvas.drawText(Tag, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint, paint);
+                //canvas.drawText(Tag, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint, paint);
+                canvas.drawText(Tag1, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint, paint);
+                canvas.drawText(Tag2, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint+yshift, paint);
             }
             else {
-                canvas.drawText(Tag, PathBounds.centerX(), PathBounds.centerY(), paint);
+                  //canvas.drawText(Tag, PathBounds.centerX(), PathBounds.centerY(), paint);
+                  canvas.drawText(Tag1, PathBounds.centerX(), PathBounds.centerY(), paint);
+                  canvas.drawText(Tag2, PathBounds.centerX(), PathBounds.centerY() + yshift, paint);
+
             }
         }
 
@@ -525,6 +558,10 @@ public class RichPath extends Path {
 
     public void addTag(String tagText) {
         Tag=tagText;
+        Tag1=Tag.substring(0,2);
+        if (Tag.length() > 4) Tag2=Tag.substring(2,4);
+        //Log.d("Path", "Tag: "+Tag +" Tag1:  "+ Tag1 +"Tag2: "+  Tag2);
+        yshift= (float) (paint.getTextSize()*1.2);
         onPathUpdated();
     }
 

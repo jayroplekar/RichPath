@@ -262,13 +262,20 @@ class RichPathDrawable extends Drawable {
         invalidateSelf();
     }
 
-    void applyZoomPan(Matrix inmatrix){
+    void applyZoomPan(Matrix inmatrix, boolean DoubleTap){
         float[] f = new float[9];
-        inmatrix.getValues(f);
         float TransX,TransY, mScale;
-        mScale=f[Matrix.MSCALE_X];
-        TransX=f[Matrix.MTRANS_X];
-        TransY=f[Matrix.MTRANS_Y];
+        if ( !DoubleTap){
+            inmatrix.getValues(f);
+            mScale=f[Matrix.MSCALE_X];
+            TransX=f[Matrix.MTRANS_X];
+            TransY=f[Matrix.MTRANS_Y];
+        }
+        else{
+            mScale=1;
+            TransX=0;
+            TransY=0;
+        }
         for (RichPath path : vector.paths) {
             path.setScaleX(mScale);path.setScaleY(mScale);
             path.setTranslationX(TransX);path.setTranslationY(TransY);

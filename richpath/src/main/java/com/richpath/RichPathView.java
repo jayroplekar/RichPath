@@ -57,7 +57,6 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
     static final int TOUCH = 3;
     static final int DOUBLETAP = 4;
     int mode=NONE;
-    private MotionEvent SavedE1=null;
 
     private static final int INVALID_POINTER_ID = -1;
 
@@ -91,7 +90,7 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
             zoomFocusY=detector.getFocusY();
             // Don't let the object get too small or too large.
             mScaleFactor = Math.max(0.1f, Math.min(mScaleFactor, 5.0f));
-            Log.d(DEBUG_TAG,"onScale: " + mScaleFactor +" FocusX: "+detector.getFocusX()+" FocusY: "+detector.getFocusY());
+           // Log.d(DEBUG_TAG,"onScale: " + mScaleFactor +" FocusX: "+detector.getFocusX()+" FocusY: "+detector.getFocusY());
             mode=ZOOM;
             invalidate();
             return true;
@@ -102,7 +101,7 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
         public boolean onDoubleTapEvent(MotionEvent e) {
             //Let's center the view reset.
             mode=DOUBLETAP;
-            Log.d(DEBUG_TAG, "Received Double Tap Let's recenter");
+            //Log.d(DEBUG_TAG, "Received Double Tap Let's recenter");
             mPosX= (float) (getWidth()/2.0); mPosY= (float) (getHeight()/2.0); mScaleFactor=1;
             invalidate();
             return true;
@@ -193,12 +192,12 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
     @Override
     public void onDraw(Canvas canvas) {
          super.onDraw(canvas);
-         Log.d(TAG, "OnDraw Mode:"+ mode + " mPosX: " + mPosX+ " mPosY:" + mPosY);
-         Log.d(TAG, "Get Height Width:"+ getHeight()+ " "+getWidth());
-         matrix=savedMatrix;
+         //Log.d(TAG, "OnDraw Mode:"+ mode + " mPosX: " + mPosX+ " mPosY:" + mPosY);
+         //Log.d(TAG, "Get Height Width:"+ getHeight()+ " "+getWidth());
+         matrix=new Matrix();
          matrix.postTranslate(mPosX, mPosY);
          matrix.postScale(mScaleFactor, mScaleFactor, zoomFocusX, zoomFocusY);
-         richPathDrawable.applyZoomPan(matrix);
+         richPathDrawable.applyZoomPan(matrix, mode==DOUBLETAP);
     }
 
     public RichPathView(Context context) {
