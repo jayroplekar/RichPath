@@ -565,7 +565,57 @@ public class RichPath extends Path {
         onPathUpdated();
     }
 
-    public void adjustTag(String tagText, float xhint, float yhint) {
+
+    void draw(Canvas canvas) {
+
+        paint.setColor(applyAlpha(fillColor, fillAlpha));
+        paint.setStyle(Paint.Style.FILL);
+        canvas.drawPath(this, paint);
+
+        paint.setColor(applyAlpha(strokeColor, strokeAlpha));
+        paint.setStyle(Paint.Style.STROKE);
+        canvas.drawPath(this, paint);
+
+        if (Tag !=null){
+            paint.setColor(getTxtColor(fillColor, fillAlpha));
+            this.computeBounds(PathBounds,true);
+
+            if (Xhint>-9999 || Yhint >-9999){
+                if( TagSplit == false) {
+                    canvas.drawText(Tag, PathBounds.centerX() + Xhint, PathBounds.centerY() + Yhint, paint);
+                }
+                else {
+                    canvas.drawText(Tag1, PathBounds.centerX() + Xhint, PathBounds.centerY() + Yhint, paint);
+                    canvas.drawText(Tag2, PathBounds.centerX() + Xhint, PathBounds.centerY() + Yhint + yshift, paint);
+                }
+            }
+            else {
+                if( TagSplit == false) {
+                    canvas.drawText(Tag, PathBounds.centerX(), PathBounds.centerY(), paint);
+                }
+                else {
+                    canvas.drawText(Tag1, PathBounds.centerX(), PathBounds.centerY(), paint);
+                    canvas.drawText(Tag2, PathBounds.centerX(), PathBounds.centerY() + yshift, paint);
+                }
+            }
+
+        }
+
+    }
+    public void addTag(String tagText, boolean NeedTagSplit) {
+        Tag=tagText;
+        TagSplit=NeedTagSplit;
+        if (NeedTagSplit){
+            Tag1=Tag.substring(0,2);
+            if (Tag.length() > 4) Tag2=Tag.substring(2,4);
+            if(Tag2 == null) Tag2="";
+            yshift= (float) (paint.getTextSize()*.8);
+        }
+        onPathUpdated();
+    }
+
+
+    public void adjustTag(float xhint, float yhint) {
         Xhint=xhint;
         Yhint=yhint;
         onPathUpdated();
