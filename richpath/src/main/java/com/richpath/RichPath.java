@@ -560,13 +560,12 @@ public class RichPath extends Path {
         Tag=tagText;
         Tag1=Tag.substring(0,2);
         if (Tag.length() > 4) Tag2=Tag.substring(2,4);
-        //Log.d("Path", "Tag: "+Tag +" Tag1:  "+ Tag1 +"Tag2: "+  Tag2);
+        //Log.d("Path addTag", "Tag: "+Tag +" Tag1:  "+ Tag1 +"Tag2: "+  Tag2);
         yshift= (float) (paint.getTextSize()*1.2);
         onPathUpdated();
     }
 
     public void adjustTag(String tagText, float xhint, float yhint) {
-        Tag=tagText;
         Xhint=xhint;
         Yhint=yhint;
         onPathUpdated();

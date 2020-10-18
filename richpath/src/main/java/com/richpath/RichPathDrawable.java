@@ -239,25 +239,28 @@ class RichPathDrawable extends Drawable {
     public void addTags(String[] pathnames, String[] tagTexts) {
         int numpaths=pathnames.length;
         if (vector == null || vector.paths.size() < 0) return;
-        for (RichPath path : vector.paths) {
-            for (int i=0; i<numpaths;i++ ){
-                String name=pathnames[i];
-                if (name.equals(path.getName())) {
-                    path.addTag(tagTexts[i]);
-                }
+        RichPath path;
+        for (int i=0; i<numpaths;i++ ){
+            String name=pathnames[i];
+            path=findRichPathByName(name);
+            if (path != null){
+                path.addTag(tagTexts[i]);
+            }
+            else{
+                Log.d("Drawable: addTag", "No Pathname:"+ name +"found for:"+tagTexts[i] );
             }
         }
         invalidateSelf();
     }
 
-    public void adjustTags(String[] pathnames, String[] tagTexts, float[] xhints, float[] yhints) {
+    public void adjustTags(String[] pathnames,  float[] xhints, float[] yhints) {
         int numpaths=pathnames.length;
         RichPath path;
         if (vector == null || vector.paths.size() < 0) return;
         for (int i=0; i<numpaths;i++ ){
             String name=pathnames[i];
             path=findRichPathByName(name);
-            if (path != null) path.adjustTag(tagTexts[i],xhints[i],yhints[i]);
+            if (path != null) path.adjustTag(name,xhints[i],yhints[i]);
         }
         invalidateSelf();
     }

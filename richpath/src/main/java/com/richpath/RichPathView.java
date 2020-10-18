@@ -351,9 +351,9 @@ public class RichPathView extends androidx.appcompat.widget.AppCompatImageView {
             richPathDrawable.addTags(Pathnames,TagTexts);
         }
     }
-    public void adjustTags(String []Pathnames, String []TagTexts, float[] Xhints, float[] Yhints) {
+    public void adjustTags(String []Pathnames,  float[] Xhints, float[] Yhints) {
         if (richPathDrawable != null) {
-            richPathDrawable.adjustTags(Pathnames,TagTexts,Xhints,Yhints);
+            richPathDrawable.adjustTags(Pathnames,Xhints,Yhints);
         }
     }
 

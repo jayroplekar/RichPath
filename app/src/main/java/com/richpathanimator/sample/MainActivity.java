@@ -24,11 +24,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         RichPathView richPathView = findViewById(R.id.ic_android);
+        final RichPath head = richPathView.findRichPathByName("head");
+        final RichPath body = richPathView.findRichPathByName("body");
+        richPathView.addTags(new String []{ "head", "body"}, new String []{"head**","body**"} );
+        richPathView.adjustTags(new String []{ "head", "body"}, new float []{50,-50} ,new float []{50,-50} );
+
         richPathView.setOnPathClickListener(new OnPathClickListener() {
             @Override
             public void onClick(RichPath richPath) {
                 int color = richPath.getFillColor();
                 String mState = richPath.getName();
+                //richPath.adjustTag(mState,-50,-50);
                 if (mState != null) {
                     Log.d(getLocalClassName(), "Name: " + mState + "Current Color: " + color);
                     if (color == Color.RED) {
