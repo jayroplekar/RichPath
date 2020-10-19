@@ -82,6 +82,7 @@ public class RichPath extends Path {
     private String Tag1;
     private String Tag2;
     private float yshift;
+    private boolean TagSplit;
 
     public RichPath(String pathData) {
         this(PathParser.createPathFromPathData(pathData));
@@ -377,36 +378,6 @@ public class RichPath extends Path {
         this.pivotToCenter = pivotToCenter;
     }
 
-    void draw(Canvas canvas) {
-
-        paint.setColor(applyAlpha(fillColor, fillAlpha));
-        paint.setStyle(Paint.Style.FILL);
-        canvas.drawPath(this, paint);
-
-        paint.setColor(applyAlpha(strokeColor, strokeAlpha));
-        paint.setStyle(Paint.Style.STROKE);
-        canvas.drawPath(this, paint);
-
-        if (Tag !=null){
-            int backgroundColor=applyAlpha(fillColor, fillAlpha);
-            paint.setColor(invertColor(backgroundColor));
-            this.computeBounds(PathBounds,true);
-
-            if (Xhint>-9999 || Yhint >-9999){
-                //canvas.drawText(Tag, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint, paint);
-                canvas.drawText(Tag1, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint, paint);
-                canvas.drawText(Tag2, PathBounds.centerX()+Xhint, PathBounds.centerY()+Yhint+yshift, paint);
-            }
-            else {
-                  //canvas.drawText(Tag, PathBounds.centerX(), PathBounds.centerY(), paint);
-                  canvas.drawText(Tag1, PathBounds.centerX(), PathBounds.centerY(), paint);
-                  canvas.drawText(Tag2, PathBounds.centerX(), PathBounds.centerY() + yshift, paint);
-
-            }
-        }
-
-    }
-
     private int invertColor(int color) {
         return  color^0x00FFFFFF;
     }
@@ -556,14 +527,7 @@ public class RichPath extends Path {
         return onPathClickListener;
     }
 
-    public void addTag(String tagText) {
-        Tag=tagText;
-        Tag1=Tag.substring(0,2);
-        if (Tag.length() > 4) Tag2=Tag.substring(2,4);
-        //Log.d("Path addTag", "Tag: "+Tag +" Tag1:  "+ Tag1 +"Tag2: "+  Tag2);
-        yshift= (float) (paint.getTextSize()*1.2);
-        onPathUpdated();
-    }
+
 
 
     void draw(Canvas canvas) {
@@ -582,7 +546,8 @@ public class RichPath extends Path {
 
             if (Xhint>-9999 || Yhint >-9999){
                 if( TagSplit == false) {
-                    canvas.drawText(Tag, PathBounds.centerX() + Xhint, PathBounds.centerY() + Yhint, paint);
+                    String FakeSplitTag=Tag.substring(0,2)+"  "+Tag.substring(2);
+                    canvas.drawText(FakeSplitTag, PathBounds.centerX()+Xhint, PathBounds.centerY() + Yhint, paint);
                 }
                 else {
                     canvas.drawText(Tag1, PathBounds.centerX() + Xhint, PathBounds.centerY() + Yhint, paint);
@@ -591,7 +556,9 @@ public class RichPath extends Path {
             }
             else {
                 if( TagSplit == false) {
-                    canvas.drawText(Tag, PathBounds.centerX(), PathBounds.centerY(), paint);
+                    //Assume one line,  left + some space
+                    String FakeSplitTag=Tag.substring(0,2)+"  "+Tag.substring(2);
+                    canvas.drawText(FakeSplitTag, PathBounds.centerX(), PathBounds.centerY(), paint);
                 }
                 else {
                     canvas.drawText(Tag1, PathBounds.centerX(), PathBounds.centerY(), paint);
@@ -602,6 +569,25 @@ public class RichPath extends Path {
         }
 
     }
+
+    private int getTxtColor(int fillColor, float fillAlpha) {
+        if(fillColor == Color.RED ||fillColor == Color.BLUE){
+            fillColor=Color.WHITE;
+        }
+        else{
+            fillColor=Color.BLACK;
+        }
+        return applyAlpha(strokeColor, strokeAlpha);
+    }
+
+    public void addTag(String tagText) {
+        Tag=tagText;
+        Tag1=Tag.substring(0,2);
+        if (Tag.length() > 4) Tag2=Tag.substring(2,4);
+        //Log.d("Path addTag", "Tag: "+Tag +" Tag1:  "+ Tag1 +"Tag2: "+  Tag2);
+        yshift= (float) (paint.getTextSize()*1.2);
+        onPathUpdated();
+    }
     public void addTag(String tagText, boolean NeedTagSplit) {
         Tag=tagText;
         TagSplit=NeedTagSplit;
@@ -609,7 +595,7 @@ public class RichPath extends Path {
             Tag1=Tag.substring(0,2);
             if (Tag.length() > 4) Tag2=Tag.substring(2,4);
             if(Tag2 == null) Tag2="";
-            yshift= (float) (paint.getTextSize()*.8);
+            yshift= (float) (paint.getTextSize()*1.2);
         }
         onPathUpdated();
     }
